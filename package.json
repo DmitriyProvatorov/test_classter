@@ -1,0 +1,23 @@
+{
+  "name": "claster",
+  "version": "1.0.0",
+  "description": "test task",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/DmitriyProvatorov/tesst_cluster.git"
+  },
+  "author": "Dmitriy Provatorov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DmitriyProvatorov/tesst_cluster/issues"
+  },
+  "dependencies": {
+    "redis": "^3.0.2",
+    "socket.io": "^2.3.0"
+  },
+  "homepage": "https://github.com/DmitriyProvatorov/tesst_cluster#readme"
+}
