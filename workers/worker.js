@@ -24,7 +24,7 @@ subscriber.on("message", function(channel, msg) {
 
 
 
-  //  console.log("msg",msg)
+    //  console.log("msg",msg)
 
 
 
@@ -79,7 +79,7 @@ subscriber.on("message", function(channel, msg) {
         case "setMaster":
 
 
-           // console.log(storage)
+            // console.log(storage)
 
             if(storage.index == msg.index){
 
@@ -89,8 +89,8 @@ subscriber.on("message", function(channel, msg) {
 
             }
             else{
-             storage.isMaster =false;
-        }
+                storage.isMaster =false;
+            }
 
             break;
 
@@ -114,7 +114,7 @@ subscriber.on("message", function(channel, msg) {
             break;
         case "setNumber":
             if(msg.index == storage.index){
-               // console.log("slave :",  msg.index, "get num:", msg.num)
+                // console.log("slave :",  msg.index, "get num:", msg.num)
 
                 parentPort.postMessage({index: storage.index, isMaster: storage.isMaster, } );
             }
@@ -162,14 +162,14 @@ function getSlaves(msg){
 // из главного потока:
 parentPort.on("message", (msg, data) => {
 
-  //  console.log(msg)
+    //  console.log(msg)
     switch(msg.event){
         case "WM_setMaster":
 
 
             storage.isMaster = false;
 
-          //  console.log("master", storage)
+            //  console.log("master", storage)
 
             publisher.publish("worker", JSON.stringify({event: "setMaster",index: msg.index, count:msg.count}));
 
@@ -191,7 +191,7 @@ parentPort.on("message", (msg, data) => {
             break;
 
         case "WM_addWorker":
-        //    console.log(storage)
+            //    console.log(storage)
             publisher.publish("worker", JSON.stringify({event: "addWorker", count:msg.count}));
 
 
@@ -221,7 +221,7 @@ function sendNumsToSlaves(){
 
     for(let index of slaves){
         let num = parseInt(random(1, 100));
-      //  console.log("send", num  , "to slave" ,index) ;
+        //  console.log("send", num  , "to slave" ,index) ;
 
 
         publisher.publish("worker", JSON.stringify({event: "setNumber",index, num}));
