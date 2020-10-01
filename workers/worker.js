@@ -14,123 +14,164 @@ let storage = {
 
 if(!isMainThread) {
     storage = workerData
-}
-console.log('create worker')
-subscriber.subscribe("worker");
+    class Worker{
+        constructor(workerData) {
+            this.storage = workerData || {
+                index: false,
+                isMaster: false
+            };
+            this.slavedexes = [];
 
-subscriber.on("message", function(channel, msg) {
-    msg = JSON.parse(msg)
-
-
-
-
-  //  console.log("msg",msg)
+            this.redisSudscrable(this);
 
 
 
+            parentPort.on("message", (msg, data) => {
 
-    switch (msg.event){
-        case "getIndex":
-
-
-
-            if(!storage.isMaster){
+                //  console.log(msg)
+                switch(msg.event){
+                    case "WM_setMaster":
 
 
+                        storage.isMaster = false;
 
-                publisher.publish("worker", JSON.stringify({event : "setIndex", index: storage.index, count: msg.count}));
-            }
-            else{
+                        //  console.log("master", storage)
 
-                slaves = [];
-            }
-            break;
-
-        case "setIndex":
-            if(storage.isMaster){
+                        publisher.publish("worker", JSON.stringify({event: "RM_setMaster",index: msg.index, count:msg.count}));
 
 
 
-                if(msg.count) {
-                    storage.workersCount = msg.count;
+                        break;
+
+
+
+                    case "WM_removeWorker":
+
+                        storage.isMaster = false;
+
+
+
+
+
+
+                        break;
+
+                    case "WM_addWorker":
+
+                        publisher.publish("worker", JSON.stringify({event: "RM_addWorker", count:msg.count}));
+                        break;
+
+                    case "WM_getSlaves":
+
+
+                        getSlaveIndexes(msg);
+                        break;
+
                 }
 
 
-
-                if(slaves.indexOf(msg.index) == -1){
-
-
-                    slaves.push(msg.index)
-
-                }
-                if(slaves.length == storage.workersCount-1){
-                    console.log(slaves)
-                    console.log(storage)
-                    sendNumsToSlaves()
-
-                    parentPort.postMessage({index: storage.index, isMaster: storage.isMaster, } );
-                }
-
-            }
+            })
 
 
-            break;
-
-        case "setMaster":
-
-
-           // console.log(storage)
-
-            if(storage.index == msg.index){
-
-                storage.workersCount = msg.count;
-                setMaster();
-                getSlaves();
-
-            }
-            else{
-             storage.isMaster =false;
         }
+        setMaster() {
+            storage.isMaster = true;
+        }
+        redisSudscrable(that){
+            subscriber.subscribe("worker");
+            subscriber.on("message", function(channel, msg) {
+                msg = JSON.parse(msg)
 
-            break;
-
-        case "addWorker":
-
-
-
-            if(storage.isMaster){
-
-
-
-                slaves = [];
-
-                storage.workersCount = msg.count;
-
-                parentPort.postMessage({index: storage.index, isMaster: storage.isMaster, } );
-
-                getSlaves();
-
-            }
-            break;
-        case "setNumber":
-            if(msg.index == storage.index){
-               // console.log("slave :",  msg.index, "get num:", msg.num)
-
-                parentPort.postMessage({index: storage.index, isMaster: storage.isMaster, } );
-            }
-            break;
+                switch (msg.event){
+                    case "RM_getSlaveIndex":
 
 
 
+                        if(!storage.isMaster){
 
+
+
+                            publisher.publish("worker", JSON.stringify({event : "RM_addIndex", index: storage.index, count: msg.count}));
+                        }
+                        else{
+
+                            slaves = [];
+                        }
+                        break;
+                    case "RM_addIndex":
+                        if(storage.isMaster){
+                            if(msg.count) {
+                                storage.workersCount = msg.count;
+                            }
+                            if(slaves.indexOf(msg.index) == -1){
+                                slaves.push(msg.index)
+                            }
+                            if(slaves.length == storage.workersCount-1){
+                                console.log(slaves)
+                                console.log(storage)
+                                sendNumsToSlaves()
+                                parentPort.postMessage({index: storage.index, isMaster: storage.isMaster, } );
+                            }
+                        }
+
+
+                        break;
+
+                    case "RM_setMaster":
+
+
+                        // console.log(storage)
+
+                        if(storage.index == msg.index){
+                            console.log(this)
+
+                            storage.workersCount = msg.count;
+
+                            that.setMaster();
+                            getSlaveIndexes();
+
+                        }
+                        else{
+                            storage.isMaster =false;
+                        }
+
+                        break;
+
+                    case "RM_addWorker":
+
+
+
+                        if(storage.isMaster){
+
+
+
+                            slaves = [];
+
+                            storage.workersCount = msg.count;
+
+                            parentPort.postMessage({index: storage.index, isMaster: storage.isMaster, } );
+
+                            getSlaveIndexes();
+
+                        }
+                        break;
+                    case "setNumber":
+                        if(msg.index == storage.index){
+                            // console.log("slave :",  msg.index, "get num:", msg.num)
+
+                            parentPort.postMessage({index: storage.index, isMaster: storage.isMaster, } );
+                        }
+                        break;
+                }
+            });
+        }
     }
+    new Worker();
+    console.log('create worker')
+}
 
 
 
-
-
-
-});
 
 // слушатели редис мастера
 
@@ -146,66 +187,17 @@ function random (min, max){
 
 
 // по событиям сокета
-function setMaster(){
 
-
-    storage.isMaster = true;
-}
-function getSlaves(msg){
+function getSlaveIndexes(msg){
 
 
     msg= msg || {};
 
-    publisher.publish("worker", JSON.stringify({event : "getIndex", index: storage.index, count:msg.count}));
+    publisher.publish("worker", JSON.stringify({event : "RM_getSlaveIndex", index: storage.index, count:msg.count}));
 }
 
 // из главного потока:
-parentPort.on("message", (msg, data) => {
 
-  //  console.log(msg)
-    switch(msg.event){
-        case "WM_setMaster":
-
-
-            storage.isMaster = false;
-
-          //  console.log("master", storage)
-
-            publisher.publish("worker", JSON.stringify({event: "setMaster",index: msg.index, count:msg.count}));
-
-
-
-            break;
-
-
-
-        case "WM_removeWorker":
-
-            storage.isMaster = false;
-
-
-
-            //  removeWorker(msg.index);
-
-
-            break;
-
-        case "WM_addWorker":
-        //    console.log(storage)
-            publisher.publish("worker", JSON.stringify({event: "addWorker", count:msg.count}));
-
-
-
-            break;
-
-        case "WM_getSlaves":
-
-
-            getSlaves(msg);
-            break;
-
-    }
-})
 function removeWorker(index){
 
 
